@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  name             String
+  email            String    @unique(map: "email")
+  password         String?
+  createdAt        DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime  @default(now()) @db.Timestamp(0)
+  avatar           String?   // Optional avatar field, assuming no relation to Image model
+  attendanceStatus String?   // Optional attendance status
+  attendanceTime   DateTime? // Optional attendance time
+  roleId           Int
+  role             Role      @relation(fields: [roleId], references: [id])
+  images           Image[]   // User can have multiple images
+  kelasId          Int?
+  kelas            Kelas?    @relation(fields: [kelasId], references: [id])
+  jurusanId        Int?
+  jurusan          Jurusan?  @relation(fields: [jurusanId], references: [id])
+}
+
+model Image {
+  id        Int     @id @default(autoincrement())
+  url       String
+  user      User?   @relation(fields: [userId], references: [id])
+  userId    Int?
+}
+
+model Kelas {
+  id      Int      @id @default(autoincrement())
+  nama    String   @unique
+  users   User[]
+}
+
+model Jurusan {
+  id      Int      @id @default(autoincrement())
+  nama    String   @unique
+  users   User[]
+}
