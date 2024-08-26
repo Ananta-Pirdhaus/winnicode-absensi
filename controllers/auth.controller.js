@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const prisma = require("../prismaClient"); // pastikan path sesuai dengan lokasi file prismaClient.js
-const upload = require("../middleware/uploads"); // Import the multer configuration
 
 exports.register = async (req, res) => {
   const { username, password, email, kelasId, jurusanId } = req.body;
@@ -70,7 +69,6 @@ exports.login = async (req, res) => {
       .send({ message: "Please provide email and password" });
   }
 
-  // Validate email to ensure it ends with @gmail.com
   const emailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
   if (!emailPattern.test(email)) {
     return res
@@ -79,35 +77,30 @@ exports.login = async (req, res) => {
   }
 
   try {
-    // Find the user in the database
-    const user = await prisma.user.findUnique({
-      where: { email: email },
-    });
+    const user = await prisma.user.findUnique({ where: { email: email } });
 
     if (!user) {
       return res.status(404).send({ message: "User not found" });
     }
 
-    // Check if the password is valid
     const passwordIsValid = await bcrypt.compare(password, user.password);
 
     if (!passwordIsValid) {
-      return res.status(401).send({
-        accessToken: null,
-        message: "Invalid Password!",
-      });
+      return res.status(401).send({ message: "Invalid Password!" });
     }
 
-    // Generate a JWT token
-    const token = jwt.sign({ id: user.id }, "your-secret-key", {
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: 86400, // 24 hours
     });
 
-    res.status(200).send({
-      id: user.id,
-      email: user.email,
-      accessToken: token,
+    // Set the token as an HTTP-only cookie
+    res.cookie("authToken", token, {
+      httpOnly: true, // Makes the cookie inaccessible to JavaScript
+      secure: process.env.NODE_ENV === "production", // Use only in HTTPS if in production
+      maxAge: 86400 * 1000, // Cookie expires in 24 hours
     });
+
+    res.status(200).send({ message: "Login successful" });
   } catch (error) {
     console.log("error: ", error);
     res.status(500).send({ message: error.message });

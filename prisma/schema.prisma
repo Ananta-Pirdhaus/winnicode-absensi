@@ -18,26 +18,31 @@ model User {
   name             String
   email            String    @unique(map: "email")
   password         String?
+  token            String?
   createdAt        DateTime  @default(now()) @db.Timestamp(0)
   updatedAt        DateTime  @default(now()) @db.Timestamp(0)
-  avatar           String?   // Optional avatar field, assuming no relation to Image model
-  attendanceStatus String?   // Optional attendance status
-  attendanceTime   DateTime? // Optional attendance time
+  avatar           String?   // URL gambar avatar
+  attendanceStatus String?
+  attendanceTime   DateTime?
   roleId           Int
   role             Role      @relation(fields: [roleId], references: [id])
-  images           Image[]   // User can have multiple images
+  images           Image[]   // User bisa memiliki banyak gambar
   kelasId          Int?
   kelas            Kelas?    @relation(fields: [kelasId], references: [id])
   jurusanId        Int?
   jurusan          Jurusan?  @relation(fields: [jurusanId], references: [id])
 }
 
+
+
 model Image {
   id        Int     @id @default(autoincrement())
   url       String
   user      User?   @relation(fields: [userId], references: [id])
   userId    Int?
+  isAvatar  Boolean @default(false) // Menandai gambar sebagai avatar
 }
+
 
 model Kelas {
   id      Int      @id @default(autoincrement())

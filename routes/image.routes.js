@@ -4,6 +4,6 @@ const processImageController = require("../controllers/process.image");
 
 // Gunakan fungsi yang diekspor dari process.image.js
 router.post("/image", processImageController.post_images);
-router.get("/image", processImageController.get_images);
+router.get("/image", processImageController.getAllImages);
 
 module.exports = router;
