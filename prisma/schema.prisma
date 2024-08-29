@@ -44,6 +44,7 @@ model Image {
 }
 
 
+
 model Kelas {
   id      Int      @id @default(autoincrement())
   nama    String   @unique

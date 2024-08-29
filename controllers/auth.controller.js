@@ -93,14 +93,11 @@ exports.login = async (req, res) => {
       expiresIn: 86400, // 24 hours
     });
 
-    // Set the token as an HTTP-only cookie
-    res.cookie("authToken", token, {
-      httpOnly: true, // Makes the cookie inaccessible to JavaScript
-      secure: process.env.NODE_ENV === "production", // Use only in HTTPS if in production
-      maxAge: 86400 * 1000, // Cookie expires in 24 hours
+    // Kirim token dalam respons JSON
+    res.status(200).send({
+      message: "Login successful",
+      token: token,
     });
-
-    res.status(200).send({ message: "Login successful" });
   } catch (error) {
     console.log("error: ", error);
     res.status(500).send({ message: error.message });

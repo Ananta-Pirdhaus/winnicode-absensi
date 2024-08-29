@@ -176,6 +176,13 @@ app.use((err, req, res, next) => {
   });
 });
 
+app.use(
+  cors({
+    origin: "http://localhost:5173", // URL frontend
+    credentials: true, // Izinkan pengiriman cookie
+  })
+);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
