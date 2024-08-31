@@ -2,26 +2,59 @@ import React, { useEffect, useRef, useState } from "react";
 import * as faceapi from "face-api.js";
 import AuthIdle from "../../images/auth-idle.svg";
 import AuthFace from "../../images/auth-face.svg";
+import { axiosInstance } from "../../components/axios";
 
-const FaceRecognitionModal = ({ onClose }) => {
+const getLabeledFaceDescriptors = async (imageSrc, studentName) => {
+  try {
+    const img = await faceapi.fetchImage(imageSrc);
+    const detections = await faceapi
+      .detectSingleFace(img)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    if (!detections) return [];
+    return [
+      new faceapi.LabeledFaceDescriptors(studentName, [detections.descriptor]),
+    ];
+  } catch (error) {
+    console.error("Error fetching face descriptors:", error);
+    return [];
+  }
+};
+
+const AbsensiModal = ({ isOpen, studentName, studentImageSrc, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [loginResult, setLoginResult] = useState("PENDING");
   const [localUserStream, setLocalUserStream] = useState(null);
+  const [labeledFaceDescriptors, setLabeledFaceDescriptors] = useState([]);
+  const [recognizedName, setRecognizedName] = useState(null);
+  const [isRecognitionStopped, setIsRecognitionStopped] = useState(false);
   const videoRef = useRef();
   const canvasRef = useRef();
+  let intervalId = useRef(null);
 
-  useEffect(() => {
-    const loadModels = async () => {
+  const loadModels = async () => {
+    try {
       await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
       await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
       await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
+      const descriptors = await getLabeledFaceDescriptors(
+        studentImageSrc,
+        studentName
+      );
+      if (descriptors.length === 0) {
+        console.error("No face descriptors found for the student.");
+        return;
+      }
+      setLabeledFaceDescriptors(descriptors);
       setIsLoading(false);
-    };
-    loadModels();
-  }, []);
+    } catch (error) {
+      console.error("Error loading face-api.js models:", error);
+      setIsLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    const getLocalUserVideo = async () => {
+  const getLocalUserVideo = async () => {
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: true,
@@ -29,67 +62,100 @@ const FaceRecognitionModal = ({ onClose }) => {
       videoRef.current.srcObject = stream;
       videoRef.current.onloadedmetadata = () => {
         videoRef.current.play();
-        console.log(
-          "Video dimensions:",
-          videoRef.current.videoWidth,
-          videoRef.current.videoHeight
-        );
       };
       setLocalUserStream(stream);
-    };
-    getLocalUserVideo();
-  }, []);
+    } catch (error) {
+      console.error("Error accessing user media:", error);
+    }
+  };
 
-  useEffect(() => {
-    const scanFace = async () => {
-      if (!localUserStream || !videoRef.current || !canvasRef.current) return;
+  const scanFace = async () => {
+    if (
+      !localUserStream ||
+      !videoRef.current ||
+      !canvasRef.current ||
+      labeledFaceDescriptors.length === 0 ||
+      isRecognitionStopped
+    )
+      return;
 
-      const videoWidth = videoRef.current.videoWidth;
-      const videoHeight = videoRef.current.videoHeight;
+    const videoWidth = videoRef.current.videoWidth;
+    const videoHeight = videoRef.current.videoHeight;
 
-      if (videoWidth === 0 || videoHeight === 0) {
-        console.error("Video dimensions are invalid:", {
-          width: videoWidth,
-          height: videoHeight,
-        });
-        return;
-      }
-
-      faceapi.matchDimensions(canvasRef.current, videoRef.current);
-
-      const detections = await faceapi
-        .detectAllFaces(videoRef.current)
-        .withFaceLandmarks()
-        .withFaceDescriptors();
-      const resizedDetections = faceapi.resizeResults(detections, {
+    if (videoWidth === 0 || videoHeight === 0) {
+      console.error("Video dimensions are invalid:", {
         width: videoWidth,
         height: videoHeight,
       });
+      return;
+    }
 
-      const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors); // Assume labeledFaceDescriptors are loaded
+    faceapi.matchDimensions(canvasRef.current, videoRef.current);
 
-      const results = resizedDetections.map((d) =>
-        faceMatcher.findBestMatch(d.descriptor)
-      );
+    const detections = await faceapi
+      .detectAllFaces(videoRef.current)
+      .withFaceLandmarks()
+      .withFaceDescriptors();
+    const resizedDetections = faceapi.resizeResults(detections, {
+      width: videoWidth,
+      height: videoHeight,
+    });
 
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, videoWidth, videoHeight);
-      faceapi.draw.drawDetections(canvas, resizedDetections);
-      faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+    const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors);
+    const results = resizedDetections.map((d) =>
+      faceMatcher.findBestMatch(d.descriptor)
+    );
 
-      if (results.length > 0 && results[0].label === "expectedLabel") {
-        setLoginResult("SUCCESS");
-        // Update attendance status here
-      } else {
-        setLoginResult("FAILED");
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, videoWidth, videoHeight);
+    faceapi.draw.drawDetections(canvas, resizedDetections);
+    faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+
+    if (results.length > 0 && results[0].label === studentName) {
+      setLoginResult("SUCCESS");
+      setRecognizedName(studentName);
+      setIsRecognitionStopped(true);
+      clearInterval(intervalId.current);
+
+      // Send request to update attendance status
+      try {
+        await axiosInstance.post("/absensi", {
+          studentName: recognizedName || studentName,
+          status: "Hadir",
+        });
+        console.log("Attendance status updated to 'Hadir'");
+      } catch (error) {
+        console.error("Error updating attendance status:", error);
+      }
+    } else {
+      setLoginResult("FAILED");
+    }
+  };
+
+  useEffect(() => {
+    if (localUserStream) {
+      intervalId.current = setInterval(scanFace, 1000 / 15);
+      return () => clearInterval(intervalId.current);
+    }
+  }, [localUserStream]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadModels();
+      getLocalUserVideo();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (localUserStream) {
+        localUserStream.getTracks().forEach((track) => track.stop());
       }
     };
-
-    const intervalId = setInterval(scanFace, 1000 / 15);
-
-    return () => clearInterval(intervalId);
   }, [localUserStream]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
@@ -146,12 +212,27 @@ const FaceRecognitionModal = ({ onClose }) => {
         )}
         {!isLoading && loginResult === "SUCCESS" && (
           <div className="text-center text-green-600 mt-4">
-            <p>Face recognized successfully! Attendance marked as present.</p>
+            <p>Face recognized successfully!</p>
+            <p>Welcome, {recognizedName}!</p>
           </div>
         )}
+        {!isLoading && loginResult === "PENDING" && (
+          <div className="text-center text-gray-700 mt-4">
+            <p>Please wait, scanning...</p>
+          </div>
+        )}
+        <button
+          onClick={() => {
+            loadModels();
+            getLocalUserVideo();
+          }}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Preview Absensi
+        </button>
       </div>
     </div>
   );
 };
 
-export default FaceRecognitionModal;
+export default AbsensiModal;

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import RegisterImages from "../images/register_images.png";
-import { Link } from "react-router-dom";
-import { axiosInstance } from "../components/axios";
 import Swal from "sweetalert2";
+import RegisterImages from "../images/register_images.png";
 import withReactContent from "sweetalert2-react-content";
+import { axiosInstance } from "../components/axios";
 
 function Register() {
-  // State to manage form input values
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +12,8 @@ function Register() {
   const [majorSelection, setMajorSelection] = useState(""); // State for major dropdown
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState([]); // State for class options
-  const [majors, setMajors] = useState([]); // State for major options
+  const [majors, setMajors] = useState([]); // State for all major options
+  const [filteredMajors, setFilteredMajors] = useState([]); // State for filtered major options
   const MySwal = withReactContent(Swal);
 
   // Fetch data for classes and majors
@@ -23,9 +22,9 @@ function Register() {
       try {
         const classResponse = await axiosInstance.get("/api/auth/kelas");
         setClasses(classResponse.data); // Assuming the response is an array of classes
-
         const majorResponse = await axiosInstance.get("/api/auth/jurusan");
         setMajors(majorResponse.data); // Assuming the response is an array of majors
+        setFilteredMajors(majorResponse.data); // Initialize filtered majors with all majors initially
       } catch (error) {
         console.error("Error fetching class or major data:", error);
         await Swal.fire({
@@ -39,6 +38,24 @@ function Register() {
     fetchOptions();
   }, []);
 
+  // Update filtered majors when classSelection changes
+  useEffect(() => {
+    if (classSelection) {
+      // Get the selected class name
+      const selectedClass = classes.find(
+        (cls) => cls.id === parseInt(classSelection, 10)
+      );
+      if (selectedClass) {
+        const filtered = majors.filter(
+          (major) => major.nama.startsWith(selectedClass.nama) // Filter based on class name prefix
+        );
+        setFilteredMajors(filtered);
+      }
+    } else {
+      setFilteredMajors(majors);
+    }
+  }, [classSelection, majors, classes]);
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent default form submission
@@ -50,10 +67,12 @@ function Register() {
         username,
         email,
         password,
-        class: classSelection, // Include class in the payload
-        major: majorSelection, // Include major in the payload
+        kelasId: parseInt(classSelection, 10), // Convert to integer
+        jurusanId: parseInt(majorSelection, 10), // Convert to integer
       });
+
       console.log("Registration successful:", response.data);
+      console.table(response.data);
 
       // Show success alert
       await Swal.fire({
@@ -87,112 +106,110 @@ function Register() {
             <h1 className="text-2xl xl:text-3xl font-extrabold">Sign up</h1>
             <form onSubmit={handleSubmit} className="w-full flex-1 mt-8">
               <div className="mx-auto max-w-xs">
-                <input
-                  className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                <input
-                  className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white my-5"
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <input
-                  className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <div className="my-5">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                <div className="mb-4">
+                  <label
+                    htmlFor="username"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label
+                    htmlFor="class"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Class
                   </label>
                   <select
-                    className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
+                    id="class"
+                    name="class"
                     value={classSelection}
                     onChange={(e) => setClassSelection(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   >
-                    <option value="" disabled>
-                      Select Class
-                    </option>
-                    {classes.map((option, index) => (
-                      <option key={index} value={option.id}>
-                        {" "}
-                        {/* Assuming `option` has `id` and `name` */}
-                        {option.name}
+                    <option value="">Select Class</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.nama}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div className="my-5">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                <div className="mb-4">
+                  <label
+                    htmlFor="major"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Major
                   </label>
                   <select
-                    className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
+                    id="major"
+                    name="major"
                     value={majorSelection}
                     onChange={(e) => setMajorSelection(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   >
-                    <option value="" disabled>
-                      Select Major
-                    </option>
-                    {majors.map((option, index) => (
-                      <option key={index} value={option.id}>
-                        {" "}
-                        {/* Assuming `option` has `id` and `name` */}
-                        {option.name}
+                    <option value="">Select Major</option>
+                    {filteredMajors.map((major) => (
+                      <option key={major.id} value={major.id}>
+                        {major.nama}
                       </option>
                     ))}
                   </select>
                 </div>
+                <div className="mb-4">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
                 <button
                   type="submit"
-                  className={`mt-5 tracking-wide font-semibold bg-indigo-500 text-gray-100 w-full py-4 rounded-lg hover:bg-indigo-700 transition-all duration-300 ease-in-out flex items-center justify-center focus:shadow-outline focus:outline-none ${
+                  disabled={loading}
+                  className={`w-full py-2 px-4 bg-indigo-600 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
-                  disabled={loading}
                 >
-                  {loading ? (
-                    <svg
-                      className="w-6 h-6 animate-spin"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 6v6l4 2" />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="w-6 h-6 -ml-2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                      <circle cx="8.5" cy="7" r="4" />
-                      <path d="M20 8v6M23 11h-6" />
-                    </svg>
-                  )}
-                  <span className="ml-3">
-                    {loading ? "Loading..." : "Register"}
-                  </span>
+                  {loading ? "Registering..." : "Register"}
                 </button>
-                <Link
-                  to="/login"
-                  className="mt-5 block text-center tracking-wide font-semibold bg-indigo-500 text-gray-100 w-full py-4 rounded-lg hover:bg-indigo-700 transition-all duration-300 ease-in-out items-center justify-center focus:shadow-outline focus:outline-none"
-                >
-                  <span>Already have an account? Login</span>
-                </Link>
               </div>
             </form>
           </div>

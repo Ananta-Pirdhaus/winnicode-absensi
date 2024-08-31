@@ -23,7 +23,16 @@ function Login() {
         email,
         password,
       });
+
       console.log("Login successful:", response.data);
+
+      // Simpan token di localStorage
+      localStorage.setItem("authToken", response.data.token);
+
+      // Set default header Authorization untuk Axios
+      axiosInstance.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
 
       // Show success alert
       await MySwal.fire({

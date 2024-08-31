@@ -2,20 +2,20 @@ import React, { useState, useEffect } from "react";
 import { axiosInstance } from "../../components/axios";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import UploadModal from "../uploadModal";
+import AbsensiModal from "./Absensi-Modal";
 
-// Menggunakan withReactContent untuk mengintegrasikan Swal dengan React
 const MySwal = withReactContent(Swal);
 
 function Siswa() {
   const [data, setData] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isAbsensiModalOpen, setIsAbsensiModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // Mengambil data siswa dari API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Menampilkan notifikasi loading
         MySwal.fire({
           title: "Loading...",
           text: "Fetching student data...",
@@ -24,14 +24,10 @@ function Siswa() {
           },
         });
 
-        // Melakukan request GET untuk mengambil data siswa
         const response = await axiosInstance.get("/api/auth/student");
         setData(response.data);
-
-        // Menutup notifikasi loading
         MySwal.close();
       } catch (error) {
-        // Menutup notifikasi loading dan menampilkan notifikasi error
         MySwal.close();
         MySwal.fire({
           icon: "error",
@@ -44,13 +40,23 @@ function Siswa() {
     fetchData();
   }, []);
 
-  const handleOpenModal = (student) => {
+  const handleOpenUploadModal = (student) => {
     setSelectedStudent(student);
-    setIsModalOpen(true);
+    setIsUploadModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseUploadModal = () => {
+    setIsUploadModalOpen(false);
+    setSelectedStudent(null);
+  };
+
+  const handleOpenAbsensiModal = (student) => {
+    setSelectedStudent(student);
+    setIsAbsensiModalOpen(true);
+  };
+
+  const handleCloseAbsensiModal = () => {
+    setIsAbsensiModalOpen(false);
     setSelectedStudent(null);
   };
 
@@ -62,75 +68,70 @@ function Siswa() {
         </h2>
       </header>
       <div className="p-3">
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="table-auto w-full">
-            {/* Table header */}
             <thead className="text-xs font-semibold uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700 dark:bg-opacity-50">
               <tr>
-                <th className="p-2 whitespace-nowrap">
-                  <div className="font-semibold text-left">Nama</div>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Avatar</div>
                 </th>
-                <th className="p-2 whitespace-nowrap">
-                  <div className="font-semibold text-left">Kelas</div>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Nama</div>
                 </th>
-                <th className="p-2 whitespace-nowrap">
-                  <div className="font-semibold text-left">Jurusan</div>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Kelas</div>
                 </th>
-                <th className="p-2 whitespace-nowrap">
-                  <div className="font-semibold text-center">
-                    Preview Absensi
-                  </div>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Jurusan</div>
                 </th>
-                <th className="p-2 whitespace-nowrap">
-                  <div className="font-semibold text-center">
-                    Status Absensi
-                  </div>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Preview Absensi</div>
                 </th>
-                <th className="p-2 whitespace-nowrap">
-                  <div className="font-semibold text-center">Aksi</div>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Status Absensi</div>
+                </th>
+                <th className="p-2 whitespace-nowrap text-center">
+                  <div className="font-semibold">Aksi</div>
                 </th>
               </tr>
             </thead>
-            {/* Table body */}
             <tbody className="text-sm divide-y divide-gray-100 dark:divide-gray-700/60">
               {data.map((siswa) => (
                 <tr key={siswa.id}>
-                  <td className="p-2 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 shrink-0 mr-2 sm:mr-3">
-                        <img
-                          className="rounded-full w-full h-full"
-                          src={`data:image/jpeg;base64,${siswa.image}`} // Menggunakan Base64
-                          alt={siswa.name}
-                        />
-                      </div>
-                      <div className="font-medium text-gray-800 dark:text-gray-100">
-                        {siswa.name}
-                      </div>
-                    </div>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    <img
+                      className="rounded-full w-10 h-10 mx-auto"
+                      src={`${axiosInstance.defaults.baseURL}/uploads/${siswa.avatar}`}
+                      alt={siswa.name}
+                    />
                   </td>
-                  <td className="p-2 whitespace-nowrap">
-                    <div className="text-left">{siswa.kelas}</div>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    {siswa.name}
                   </td>
-                  <td className="p-2 whitespace-nowrap">
-                    <div className="text-left">{siswa.jurusan}</div>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    {siswa.kelas?.nama || "N/A"}
                   </td>
-                  <td className="p-2 whitespace-nowrap">
-                    <div className="p-4">
-                      <button
-                        onClick={() => handleOpenModal(siswa)}
-                        className="bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        Preview Absensi
-                      </button>
-                      {isModalOpen && selectedStudent && (
-                        <AbsensiModal
-                          onClose={handleCloseModal}
-                          student={selectedStudent}
-                        />
-                      )}
-                    </div>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    {siswa.jurusan?.nama || "N/A"}
+                  </td>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => handleOpenAbsensiModal(siswa)}
+                      className="bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Preview Absensi
+                    </button>
+                  </td>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    {siswa.attendanceStatus?.status || "N/A"}
+                  </td>
+                  <td className="p-2 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => handleOpenUploadModal(siswa)}
+                      className="bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Detail
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -138,6 +139,18 @@ function Siswa() {
           </table>
         </div>
       </div>
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={handleCloseUploadModal}
+        student={selectedStudent}
+      />
+      <AbsensiModal
+        isOpen={isAbsensiModalOpen}
+        onClose={handleCloseAbsensiModal}
+        student={selectedStudent}
+        studentImageSrc={`${axiosInstance.defaults.baseURL}/uploads/${selectedStudent?.avatar}`}
+        studentName={selectedStudent?.name}
+      />
     </div>
   );
 }

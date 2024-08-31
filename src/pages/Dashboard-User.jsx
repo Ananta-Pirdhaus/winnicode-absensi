@@ -21,45 +21,6 @@ function DashboardUser() {
     setIsModalOpen(!isModalOpen);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value, type, files } = e.target;
-    if (type === "file") {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prevData) => ({
-          ...prevData,
-          [name]: reader.result.split(",")[1], // Mengambil bagian base64 dari string
-        }));
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value,
-      }));
-    }
-  };
-
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-
-    // Update state siswaData dengan data baru
-    setSiswaData((prevData) => [
-      ...prevData,
-      { ...formData, id: Date.now() }, // Menambahkan ID unik untuk setiap siswa
-    ]);
-
-    toggleModal();
-
-    // Reset formData
-    setFormData({
-      name: "",
-      kelas: "",
-      jurusan: "",
-      image: null,
-    });
-  };
 
   return (
     <div className="flex h-screen overflow-hidden">
