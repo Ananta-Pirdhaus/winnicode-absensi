@@ -5,7 +5,7 @@ import { axiosInstance } from "../components/axios";
 
 const MySwal = withReactContent(Swal);
 
-const UploadModal = ({ isOpen, onClose, student, onUploadSuccess }) => {
+const UploadModal = ({ isOpen, onClose, student, handleUploadSuccess }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
@@ -37,7 +37,7 @@ const UploadModal = ({ isOpen, onClose, student, onUploadSuccess }) => {
           });
 
           // Notify parent about the successful upload
-          onUploadSuccess(response.data.url);
+          handleUploadSuccess(response.data.url);
         } else {
           throw new Error("Upload failed");
         }

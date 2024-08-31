@@ -35,16 +35,16 @@ function DashboardUser() {
                   Dashboard Student
                 </h1>
               </div>
-              <div className="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
+              {/* <div className="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
                 <FilterButton align="right" />
                 <Datepicker align="right" />
-              </div>
+              </div> */}
             </div>
 
             <div className="grid grid-cols-12 gap-6">
-              <Absensi />
+              {/* <Absensi />
               <Izin />
-              <Alpha />
+              <Alpha /> */}
               <Siswa data={siswaData} />
             </div>
           </div>

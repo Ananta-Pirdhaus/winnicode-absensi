@@ -175,7 +175,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen, variant = "default" }) {
                     </a>
                     <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
                       <ul className={`pl-8 mt-1 ${open ? "block" : "hidden"}`}>
-                        <li className="relative">
+                        {/* <li className="relative">
                           <NavLink
                             end
                             to="/"
@@ -192,7 +192,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen, variant = "default" }) {
                           >
                             <span>Dashboard</span>
                           </NavLink>
-                        </li>
+                        </li> */}
                         <li className="relative">
                           <NavLink
                             end

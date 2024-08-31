@@ -60,6 +60,11 @@ function Siswa() {
     setSelectedStudent(null);
   };
 
+  const handleUploadSuccess = (url) => {
+    // Do something with the successful upload URL
+    console.log("Upload successful:", url);
+  };
+
   return (
     <div className="col-span-full xl:col-span-12 bg-white dark:bg-gray-800 shadow-sm rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
@@ -143,6 +148,7 @@ function Siswa() {
         isOpen={isUploadModalOpen}
         onClose={handleCloseUploadModal}
         student={selectedStudent}
+        handleUploadSuccess={handleUploadSuccess}
       />
       <AbsensiModal
         isOpen={isAbsensiModalOpen}
